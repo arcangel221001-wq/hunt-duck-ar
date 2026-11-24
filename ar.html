@@ -197,11 +197,11 @@ a.btnlink{background:var(--medio);color:var(--noche);border:3px solid var(--noch
 </div></div>
 
 <div class="dlg" id="photoDlg"><div class="card">
-  <h3>Carrete de cacería</h3>
+  <h3>Tu foto con el pato</h3>
   <img id="photoImg" alt="Foto con el Pato Rodríguez">
   <div class="strip" id="strip"></div>
   <p>Las fotos se quedan en este navegador. Descárgalas o compártelas para tenerlas en tu galería.</p>
-  <div class="row"><a class="btnlink" id="photoDl" download="hunt-duck.jpg">Descargar</a><button type="button" id="photoShare" hidden>Compartir</button><button type="button" id="photoDel">Borrar</button><button type="button" data-close>Cerrar</button></div>
+  <div class="row"><a class="btnlink" id="photoDl" download="hunt-duck.jpg">Guardar en el celular</a><button type="button" id="photoShare" hidden>Compartir</button><button type="button" id="photoDel">Borrar</button><button type="button" data-close>Cerrar</button></div>
 </div></div>
 
 <script>
@@ -440,13 +440,43 @@ function updateRoll(bump){
   $('#rollImg').src = last.url; $('#rollN').textContent = photos.length;
   if (bump) { roll.classList.remove('bump'); void roll.offsetWidth; roll.classList.add('bump'); }
 }
-function savePhoto(c){
+/* Marco polaroid: borde claro, franja gruesa abajo con el logo, el nombre del juego y la fecha */
+function polaroid(shot){
+  const sw = shot.width, sh = shot.height;
+  const side = Math.round(sw * 0.055), top = side, bottom = Math.round(sw * 0.40);
+  const c = document.createElement('canvas');
+  c.width = sw + side * 2; c.height = sh + top + bottom;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#f7f1e3'; ctx.fillRect(0, 0, c.width, c.height);            // papel
+  ctx.fillStyle = '#231f20'; ctx.fillRect(side - 2, top - 2, sw + 4, sh + 4);   // filo de la foto
+  ctx.drawImage(shot, side, top);
+  const cx = c.width / 2, f1 = Math.round(sw * 0.042), f2 = Math.round(sw * 0.034), gap = sw * 0.03;
+  const logo = document.querySelector('.logo img');
+  const hasLogo = logo && logo.complete && logo.naturalWidth;
+  const lw = sw * 0.70, lh = hasLogo ? lw * logo.naturalHeight / logo.naturalWidth : sw * 0.10;
+  const block = lh + gap + f1 + gap * 0.6 + f2;                                 // alto de logo + 2 líneas
+  let y = top + sh + (bottom - block) / 2;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  if (hasLogo) ctx.drawImage(logo, cx - lw / 2, y, lw, lh);
+  else { ctx.fillStyle = '#ce4328'; ctx.font = `${Math.round(lh * 0.8)}px "Alfa Slab One", Georgia, serif`; ctx.fillText('HUNT DUCK', cx, y); }
+  y += lh + gap;
+  const date = new Date().toLocaleDateString('es-MX', {day: 'numeric', month: 'long', year: 'numeric'});
+  ctx.fillStyle = '#231f20'; ctx.font = `${f1}px "Hermeneus One", Georgia, serif`;
+  ctx.fillText(`Con el Pato Rodríguez · ${date}`, cx, y);
+  y += f1 + gap * 0.6;
+  ctx.fillStyle = '#7c3a25'; ctx.font = `${f2}px "Hermeneus One", Georgia, serif`;
+  ctx.fillText('@huntduck_oficial', cx, y);
+  return c;
+}
+function savePhoto(shot, note){
+  const c = polaroid(shot);
   c.toBlob(b => {
     if (!b) { toast('No se pudo guardar la foto.'); return; }
     const p = addEntry(b, null);
     store('readwrite', st => st.add({blob: b, t: Date.now()})).then(id => { p.id = id; }).catch(() => {});
     updateRoll(true);
-    toast(`Foto ${photos.length} guardada en el carrete.`, 1800);
+    showGallery(photos.length - 1);                       // se ve al momento, lista para guardar
+    toast(note || 'Foto lista. Toca «Guardar en el celular».', note ? 6000 : 2600);
   }, 'image/jpeg', 0.92);
 }
 const fileOf = (p, i) => new File([p.blob], `hunt-duck-${i + 1}.jpg`, {type: 'image/jpeg'});
@@ -497,7 +527,9 @@ function camPhoto(){
    sin fondo. Se pide la imagen de la cámara de AR ('camera-access', opcional: si el teléfono
    no la da, la AR funciona igual) y, en el mismo cuadro en que se dibuja el pato, se leen
    cámara + pato + sombra. Nada de esto se ejecuta fuera de AR. */
-const XRS = {gl: null, binding: null, bindingSession: null, pose: null, poseFrame: null, job: null};
+const XRS = {gl: null, binding: null, bindingSession: null, pose: null, poseFrame: null, space: null, job: null, blit: null};
+/* model-viewer dibuja en una capa WebGL normal (no en "layers"), que es la que se puede leer */
+try { if (window.XRRenderState && 'layers' in XRRenderState.prototype) delete XRRenderState.prototype.layers; } catch (e) {}
 if (navigator.xr && typeof navigator.xr.requestSession === 'function') {
   const req = navigator.xr.requestSession.bind(navigator.xr);
   navigator.xr.requestSession = (mode, init) => {
@@ -505,6 +537,7 @@ if (navigator.xr && typeof navigator.xr.requestSession === 'function') {
       init = Object.assign({}, init);
       const opt = init.optionalFeatures || [];
       if (!opt.includes('camera-access')) init.optionalFeatures = [...opt, 'camera-access'];
+      XRS.binding = null; XRS.bindingSession = null; XRS.space = null;
     }
     return req(mode, init);
   };
@@ -514,6 +547,12 @@ if (window.XRWebGLLayer) {
   const Spy = function (session, gl, opts) { XRS.gl = gl; return new Layer(session, gl, opts); };
   Spy.prototype = Layer.prototype; Object.setPrototypeOf(Spy, Layer);
   window.XRWebGLLayer = Spy;
+}
+if (window.XRSession && XRSession.prototype.requestReferenceSpace) {
+  const rrs = XRSession.prototype.requestReferenceSpace;
+  XRSession.prototype.requestReferenceSpace = function (type) {
+    return rrs.call(this, type).then(sp => { if (!XRS.space || type === 'local') XRS.space = sp; return sp; });
+  };
 }
 if (window.XRFrame && XRFrame.prototype.getViewerPose) {
   const getPose = XRFrame.prototype.getViewerPose;
@@ -529,42 +568,98 @@ if (window.XRSession && XRSession.prototype.requestAnimationFrame) {
     return raf.call(this, (time, frame) => {
       cb(time, frame);                                   // aquí model-viewer ya dibujó el pato
       const job = XRS.job;
-      if (job && XRS.poseFrame === frame) { XRS.job = null; job(frame); }
+      if (job) { XRS.job = null; try { job(frame); } catch (e) { job.fail && job.fail('js'); } }
     });
   };
 }
+/* Copia la imagen de la cámara de AR a una textura propia con un triángulo de pantalla completa.
+   Guarda y devuelve todo el estado de WebGL que toca, para no alterar lo que dibuja model-viewer. */
+function blitCamera(gl, tex, w, h){
+  const B = XRS.blit || (XRS.blit = (() => {
+    const sh = (t, src) => { const o = gl.createShader(t); gl.shaderSource(o, src); gl.compileShader(o); return o; };
+    const prog = gl.createProgram();
+    gl.attachShader(prog, sh(gl.VERTEX_SHADER, '#version 300 es\nout vec2 uv;void main(){vec2 p=vec2((gl_VertexID<<1)&2,gl_VertexID&2);uv=p;gl_Position=vec4(p*2.0-1.0,0.0,1.0);}'));
+    gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, '#version 300 es\nprecision mediump float;in vec2 uv;uniform sampler2D t;out vec4 c;void main(){c=texture(t,uv);}'));
+    gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return null;
+    return {prog, vao: gl.createVertexArray(), loc: gl.getUniformLocation(prog, 't')};
+  })());
+  if (!B) return null;
+  const st = {
+    prog: gl.getParameter(gl.CURRENT_PROGRAM), vao: gl.getParameter(gl.VERTEX_ARRAY_BINDING),
+    unit: gl.getParameter(gl.ACTIVE_TEXTURE), vp: gl.getParameter(gl.VIEWPORT), mask: gl.getParameter(gl.COLOR_WRITEMASK),
+    caps: [gl.BLEND, gl.DEPTH_TEST, gl.CULL_FACE, gl.SCISSOR_TEST, gl.STENCIL_TEST].map(k => [k, gl.isEnabled(k)])
+  };
+  gl.activeTexture(gl.TEXTURE0);
+  const t0 = gl.getParameter(gl.TEXTURE_BINDING_2D), s0 = gl.getParameter(gl.SAMPLER_BINDING);
+  const target = gl.createTexture(), fbo = gl.createFramebuffer();
+  let px = null;
+  try {
+    gl.bindTexture(gl.TEXTURE_2D, target);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, target, 0);
+    if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE) {
+      st.caps.forEach(([k]) => gl.disable(k));
+      gl.colorMask(true, true, true, true); gl.viewport(0, 0, w, h);
+      gl.useProgram(B.prog); gl.bindVertexArray(B.vao); gl.bindSampler(0, null);
+      gl.bindTexture(gl.TEXTURE_2D, tex); gl.uniform1i(B.loc, 0);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+      px = new Uint8Array(w * h * 4);
+      gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, px);
+    }
+  } finally {
+    gl.deleteFramebuffer(fbo); gl.deleteTexture(target);
+    gl.bindTexture(gl.TEXTURE_2D, t0); gl.bindSampler(0, s0); gl.activeTexture(st.unit);
+    gl.useProgram(st.prog); gl.bindVertexArray(st.vao);
+    gl.viewport(st.vp[0], st.vp[1], st.vp[2], st.vp[3]); gl.colorMask(st.mask[0], st.mask[1], st.mask[2], st.mask[3]);
+    st.caps.forEach(([k, on]) => on ? gl.enable(k) : gl.disable(k));
+  }
+  return px;
+}
 function readXR(frame){
   const gl = XRS.gl, session = frame.session, layer = session.renderState.baseLayer;
-  const view = XRS.pose && XRS.pose.views[0];
-  if (!gl || !layer || !view) return null;
+  if (!gl) return {err: 'gl'};
+  if (!layer) return {err: 'capa'};
+  let pose = XRS.poseFrame === frame ? XRS.pose : null;
+  if (!pose && XRS.space) pose = frame.getViewerPose(XRS.space);
+  const view = pose && pose.views[0];
+  if (!view) return {err: 'pose'};
   const vp = layer.getViewport(view), W = vp.width, H = vp.height;
   const gl2 = typeof WebGL2RenderingContext !== 'undefined' && gl instanceof WebGL2RenderingContext;
   const prev = gl2 ? [gl.getParameter(gl.READ_FRAMEBUFFER_BINDING), gl.getParameter(gl.DRAW_FRAMEBUFFER_BINDING)] : [gl.getParameter(gl.FRAMEBUFFER_BINDING)];
-  const out = {W, H, duck: null, cam: null, cw: 0, ch: 0};
+  const out = {W, H, duck: null, cam: null, cw: 0, ch: 0, err: ''};
   let fbo = null;
   try {
     gl.bindFramebuffer(gl.FRAMEBUFFER, layer.framebuffer);
     out.duck = new Uint8Array(W * H * 4);
     gl.readPixels(vp.x, vp.y, W, H, gl.RGBA, gl.UNSIGNED_BYTE, out.duck);
-    if (view.camera && window.XRWebGLBinding) {
+    if (!view.camera) out.err = 'sin-camara';
+    else if (!window.XRWebGLBinding) out.err = 'sin-binding';
+    else {
       if (XRS.bindingSession !== session) { XRS.binding = new XRWebGLBinding(session, gl); XRS.bindingSession = session; }
       const tex = XRS.binding.getCameraImage(view.camera);
-      if (tex) {
-        const cw = view.camera.width, ch = view.camera.height;
-        fbo = gl.createFramebuffer();
+      const cw = view.camera.width, ch = view.camera.height;
+      if (!tex) out.err = 'sin-imagen';
+      else {
+        fbo = gl.createFramebuffer();                      // 1) leerla directo
         gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
         if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE) {
-          out.cam = new Uint8Array(cw * ch * 4); out.cw = cw; out.ch = ch;
+          out.cam = new Uint8Array(cw * ch * 4);
           gl.readPixels(0, 0, cw, ch, gl.RGBA, gl.UNSIGNED_BYTE, out.cam);
         }
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.deleteFramebuffer(fbo); fbo = null;
+        if (!out.cam && gl2) out.cam = blitCamera(gl, tex, cw, ch);   // 2) copiarla con un shader
+        if (out.cam) { out.cw = cw; out.ch = ch; } else out.err = 'lectura';
       }
     }
   } catch (e) {
+    out.err = out.err || 'gl-error';
   } finally {                                            // deja WebGL exactamente como estaba
+    if (fbo) gl.deleteFramebuffer(fbo);
     if (gl2) { gl.bindFramebuffer(gl.READ_FRAMEBUFFER, prev[0]); gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, prev[1]); }
     else gl.bindFramebuffer(gl.FRAMEBUFFER, prev[0]);
-    if (fbo) gl.deleteFramebuffer(fbo);
   }
   return out;
 }
@@ -575,28 +670,41 @@ function pixelsToCanvas(px, w, h){                        // WebGL lee de abajo 
   const ctx = b.getContext('2d'); ctx.setTransform(1, 0, 0, -1, 0, h); ctx.drawImage(a, 0, 0);
   return b;
 }
+const hasInk = px => { for (let i = 3; i < px.length; i += 4 * 97) if (px[i] > 8) return true; return false; };
+function sunset(ctx, w, h){                               // fondo de respaldo: el atardecer del juego
+  const bands = ['#efaa3a', '#ec9c3d', '#ef7443', '#dd5a33', '#ce4328'];
+  bands.forEach((c, i) => { ctx.fillStyle = c; ctx.fillRect(0, h * i / bands.length * 0.7, w, h); });
+}
 let xrBusy = false;
 function xrPhoto(){
   if (xrBusy) return;
   xrBusy = true;
-  const giveUp = setTimeout(() => { XRS.job = null; xrBusy = false; toast('No se pudo tomar la foto. Intenta de nuevo.'); }, 2000);
-  XRS.job = frame => {
-    const data = readXR(frame);
+  const fail = code => { xrBusy = false; toast(`No se pudo tomar la foto (${code}). Intenta de nuevo.`, 4500); };
+  const giveUp = setTimeout(() => { XRS.job = null; fail('tiempo'); }, 2500);
+  const job = frame => {
     clearTimeout(giveUp);
+    const data = readXR(frame);
     setTimeout(() => {                                   // el armado de la foto va fuera del cuadro de AR
       xrBusy = false;
-      if (!data || !data.duck) { toast('No se pudo tomar la foto. Intenta de nuevo.'); return; }
-      if (!data.cam) { toast('Este celular no permite fotos dentro de AR. Haz una captura de pantalla (encendido + bajar volumen).', 6000); return; }
+      if (!data.duck) { fail(data.err || 'pato'); return; }
       const c = document.createElement('canvas'); c.width = data.W; c.height = data.H;
       const ctx = c.getContext('2d');
-      const cam = pixelsToCanvas(data.cam, data.cw, data.ch);
-      const k = Math.max(data.W / data.cw, data.H / data.ch);
-      ctx.drawImage(cam, (data.W - data.cw * k) / 2, (data.H - data.ch * k) / 2, data.cw * k, data.ch * k);
+      let note = '';
+      if (data.cam && hasInk(data.cam)) {
+        const cam = pixelsToCanvas(data.cam, data.cw, data.ch);
+        const k = Math.max(data.W / data.cw, data.H / data.ch);
+        ctx.drawImage(cam, (data.W - data.cw * k) / 2, (data.H - data.ch * k) / 2, data.cw * k, data.ch * k);
+      } else {
+        sunset(ctx, data.W, data.H);
+        note = `Tu celular no deja usar la cámara dentro de la foto (${data.err || 'vacía'}); se guardó con fondo de atardecer.`;
+      }
       ctx.drawImage(pixelsToCanvas(data.duck, data.W, data.H), 0, 0);
       drawBubble(ctx, 0, 0, data.W / window.innerWidth);
-      savePhoto(c);
+      savePhoto(c, note);
     }, 0);
   };
+  job.fail = code => { clearTimeout(giveUp); fail(code); };
+  XRS.job = job;
 }
 
 $('#shot').addEventListener('click', () => { flash(); if (body.classList.contains('xr')) xrPhoto(); else camPhoto(); });
