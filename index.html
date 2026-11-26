@@ -189,6 +189,12 @@ p{margin:0 0 .8em;text-wrap:pretty}
 .qrbox b{font:400 18px/1.1 "Alfa Slab One",serif;display:block;margin-bottom:4px}
 .qrbox p{margin:0;font-size:15.5px}
 
+/* botón flotante de AR */
+.fab{position:fixed;z-index:19;right:16px;bottom:calc(env(safe-area-inset-bottom) + 16px);display:inline-flex;align-items:center;gap:10px;padding:10px 18px 10px 10px;background:var(--atar);color:var(--tierra);text-decoration:none;border:3px solid var(--noche);border-radius:40px;box-shadow:4px 4px 0 var(--noche);font:16px/1 "Alfa Slab One",serif;opacity:0;transform:translateY(20px);pointer-events:none;transition:opacity .25s,transform .25s}
+.fab svg{width:40px;height:40px;padding:7px;border-radius:50%;background:var(--tierra);color:var(--noche)}
+.fab.on{opacity:1;transform:none;pointer-events:auto}
+@media (min-width:861px){.fab{display:none}}
+
 /* compartir con QR */
 .share{position:relative;padding:clamp(56px,8vw,100px) 0;background:linear-gradient(#efaa3a 0 50%,#ec9c3d 50%)}
 .share-grid{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:clamp(28px,5vw,64px);align-items:center}
@@ -283,12 +289,13 @@ footer a.social small{display:block;font:15px "Hermeneus One",serif;color:#cdbb9
   <div class="wrap">
     <a class="home" href="#inicio" aria-label="Hunt Duck, inicio"><img src="assets/logo-chico-pixel.png" alt="Hunt Duck" width="300" height="138"></a>
     <ul>
+      <li><a href="#inicio">Inicio</a></li>
+      <li><a href="#ar">AR</a></li>
       <li><a href="#branding">Branding</a></li>
       <li><a href="#historia">Historia</a></li>
       <li><a href="#mundo">Mundo</a></li>
       <li><a href="#personajes">Personajes</a></li>
       <li><a href="#jugabilidad">Jugabilidad</a></li>
-      <li><a href="#ar">AR</a></li>
       <li><a href="#arte">Arte</a></li>
       <li><a href="#plataforma">Plataforma</a></li>
       <li><a href="#compartir">QR</a></li>
@@ -314,6 +321,43 @@ footer a.social small{display:block;font:15px "Hermeneus One",serif;color:#cdbb9
   </div>
   <svg class="ground" viewBox="0 0 1440 120" preserveAspectRatio="none" aria-hidden="true"><path fill="#231f20" d="M0 120V72l18-34 8 30 14-44 10 42 16-28 6 34 26 12h1180l18-24 8 20 14-38 10 34 16-22 8 30 10 6V120Z"/></svg>
 </header>
+
+<!-- ================= AR ================= -->
+<section class="arx" id="ar" aria-labelledby="t-ar">
+  <div class="trunks" aria-hidden="true"><svg class="l"><use href="#trunks-l"/></svg><svg class="r"><use href="#trunks-r"/></svg></div>
+  <svg class="grass l" viewBox="0 0 200 110" aria-hidden="true"><use href="#grass"/></svg>
+  <svg class="grass r" viewBox="0 0 200 110" aria-hidden="true"><use href="#grass"/></svg>
+  <div class="wrap arx-grid">
+    <div class="arx-copy">
+      <span class="arx-badge">Realidad aumentada</span>
+      <h2 id="t-ar">El Pato Rodríguez<br><em>en tu cuarto</em></h2>
+      <p class="arx-lead">Abre la cámara y aparece frente a ti, con sombra en el piso. Hazle preguntas y llévate una foto polaroid con él.</p>
+      <a class="arx-cta" href="ar.html?abrir=1"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M3 8.5h4l1.6-2.5h6.8L17 8.5h4V19H3Z"/><circle cx="12" cy="13.2" r="3.6"/></svg><span>Abrir la cámara<small>y ver al pato en AR</small></span></a>
+      <p class="arx-note">En PC se abre tu cámara web; en el celular lo pones en el piso. Cierra la AR cuando quieras con <b>✕ Cerrar AR</b>.</p>
+      <ol class="arx-steps">
+        <li><b>Abre la cámara</b><span>Acepta el permiso del navegador.</span></li>
+        <li><b>Háblale</b><span>Ocho preguntas, cada una con su animación.</span></li>
+        <li><b>Tómate la foto</b><span>Sale en marco polaroid con el logo.</span></li>
+      </ol>
+      <div class="qrbox" id="qrBox">
+        <div id="qr" aria-label="Código QR de la experiencia AR"></div>
+        <div><b>¿Mejor en el celular?</b><p>Escanea el código para ponerlo en tu piso.</p></div>
+      </div>
+    </div>
+    <div class="arx-stage">
+      <figure class="polaroid">
+        <div class="viewer">
+          <model-viewer id="preview" src="assets/modelo.glb" alt="Modelo 3D del Pato Rodríguez" loading="lazy" reveal="auto"
+            autoplay animation-name="esperando" camera-controls disable-zoom touch-action="pan-y" auto-rotate auto-rotate-delay="1500" rotation-per-second="18deg"
+            shadow-intensity="1" shadow-softness="0.8" exposure="1.05" environment-image="neutral" camera-orbit="20deg 78deg auto" interaction-prompt="none"></model-viewer>
+          <div class="say" aria-hidden="true"><b>Pato Rodríguez</b>Si tienes algo que decir, dilo rápido.</div>
+          <span class="rec" aria-hidden="true">● AR</span>
+        </div>
+        <figcaption><img src="assets/logo-horizontal-pixel.png" alt="Hunt Duck" width="900" height="183" loading="lazy"><span>Con el Pato Rodríguez · @huntduck_oficial</span></figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
 
 <!-- ================= BRANDING ================= -->
 <section class="divider d-brand" aria-labelledby="t-brand0">
@@ -530,43 +574,6 @@ footer a.social small{display:block;font:15px "Hermeneus One",serif;color:#cdbb9
   </div>
 </section>
 
-<!-- ================= AR ================= -->
-<section class="arx" id="ar" aria-labelledby="t-ar">
-  <div class="trunks" aria-hidden="true"><svg class="l"><use href="#trunks-l"/></svg><svg class="r"><use href="#trunks-r"/></svg></div>
-  <svg class="grass l" viewBox="0 0 200 110" aria-hidden="true"><use href="#grass"/></svg>
-  <svg class="grass r" viewBox="0 0 200 110" aria-hidden="true"><use href="#grass"/></svg>
-  <div class="wrap arx-grid">
-    <div class="arx-copy">
-      <span class="arx-badge">Realidad aumentada</span>
-      <h2 id="t-ar">El Pato Rodríguez<br><em>en tu cuarto</em></h2>
-      <p class="arx-lead">Abre la cámara y aparece frente a ti, con sombra en el piso. Hazle preguntas y llévate una foto polaroid con él.</p>
-      <a class="arx-cta" href="ar.html?abrir=1"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M3 8.5h4l1.6-2.5h6.8L17 8.5h4V19H3Z"/><circle cx="12" cy="13.2" r="3.6"/></svg><span>Abrir la cámara<small>y ver al pato en AR</small></span></a>
-      <p class="arx-note">En PC se abre tu cámara web; en el celular lo pones en el piso. Cierra la AR cuando quieras con <b>✕ Cerrar AR</b>.</p>
-      <ol class="arx-steps">
-        <li><b>Abre la cámara</b><span>Acepta el permiso del navegador.</span></li>
-        <li><b>Háblale</b><span>Ocho preguntas, cada una con su animación.</span></li>
-        <li><b>Tómate la foto</b><span>Sale en marco polaroid con el logo.</span></li>
-      </ol>
-      <div class="qrbox" id="qrBox">
-        <div id="qr" aria-label="Código QR de la experiencia AR"></div>
-        <div><b>¿Mejor en el celular?</b><p>Escanea el código para ponerlo en tu piso.</p></div>
-      </div>
-    </div>
-    <div class="arx-stage">
-      <figure class="polaroid">
-        <div class="viewer">
-          <model-viewer id="preview" src="assets/modelo.glb" alt="Modelo 3D del Pato Rodríguez" loading="lazy" reveal="auto"
-            autoplay animation-name="esperando" camera-controls disable-zoom touch-action="pan-y" auto-rotate auto-rotate-delay="1500" rotation-per-second="18deg"
-            shadow-intensity="1" shadow-softness="0.8" exposure="1.05" environment-image="neutral" camera-orbit="20deg 78deg auto" interaction-prompt="none"></model-viewer>
-          <div class="say" aria-hidden="true"><b>Pato Rodríguez</b>Si tienes algo que decir, dilo rápido.</div>
-          <span class="rec" aria-hidden="true">● AR</span>
-        </div>
-        <figcaption><img src="assets/logo-horizontal-pixel.png" alt="Hunt Duck" width="900" height="183" loading="lazy"><span>Con el Pato Rodríguez · @huntduck_oficial</span></figcaption>
-      </figure>
-    </div>
-  </div>
-</section>
-
 <!-- ================= COMPARTIR (QR) ================= -->
 <section class="share" id="compartir" aria-labelledby="t-share">
   <div class="wrap share-grid">
@@ -659,6 +666,8 @@ footer a.social small{display:block;font:15px "Hermeneus One",serif;color:#cdbb9
   </div>
 </footer>
 
+<a class="fab" id="fab" href="ar.html?abrir=1" aria-label="Abrir la cámara y ver al pato en AR"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M3 8.5h4l1.6-2.5h6.8L17 8.5h4V19H3Z"/><circle cx="12" cy="13.2" r="3.6"/></svg><span>Ver en AR</span></a>
+
 <dialog id="lightbox" aria-label="Arte conceptual ampliado">
   <img id="lbImg" alt="">
   <div class="bar"><span id="lbCap"></span><button class="btn" type="button" id="lbClose">Cerrar</button></div>
@@ -676,6 +685,14 @@ footer a.social small{display:block;font:15px "Hermeneus One",serif;color:#cdbb9
   });
   document.getElementById('lbClose').addEventListener('click', () => lb.close());
   lb.addEventListener('click', e => { if (e.target === lb) lb.close(); });
+
+  /* Botón flotante de AR: visible al bajar de la portada y oculto cuando ya se ve la sección AR */
+  const fab = document.getElementById('fab'), hero = document.getElementById('inicio'), arSec = document.getElementById('ar');
+  if ('IntersectionObserver' in window) {
+    const vis = {hero: true, ar: false};
+    const io = new IntersectionObserver(es => { es.forEach(e => { vis[e.target === hero ? 'hero' : 'ar'] = e.isIntersecting; }); fab.classList.toggle('on', !vis.hero && !vis.ar); });
+    io.observe(hero); io.observe(arSec);
+  }
 
   /* Compartir: QR, enlace y descarga */
   const SITE = 'https://arcangel221001-wq.github.io/hunt-duck-ar/';

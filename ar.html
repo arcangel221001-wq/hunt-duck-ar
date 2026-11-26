@@ -295,7 +295,7 @@ const arBtn = $('#arBtn');
 const FROM_SITE = new URLSearchParams(location.search).has('abrir');
 const closeBtn = $('#closeAr');
 let stream = null;
-function arLabel(){ closeBtn.hidden = !(stream || FROM_SITE); arBtn.textContent = stream ? (body.classList.contains('desk') ? 'Salir de cámara' : 'Salir de AR') : (body.classList.contains('desk') ? 'Usar cámara web' : 'Ver en AR'); }
+function arLabel(){ closeBtn.hidden = !(stream || FROM_SITE); arBtn.textContent = stream ? '✕ Cerrar AR' : (body.classList.contains('desk') ? 'Usar cámara web' : 'Ver en AR'); }
 function layout(){
   const desk = deskMQ.matches && !body.classList.contains('xr');
   body.classList.toggle('desk', desk);
@@ -364,7 +364,7 @@ mv.addEventListener('error', () => {
 
 /* ---------- AR: WebXR en celular; si no hay, cámara (celular o cámara web) ---------- */
 arBtn.addEventListener('click', () => {
-  if (stream) { stopCam(); return; }
+  if (stream) { closeAR(); return; }
   if (!ready) { toast('Espera, el pato todavía está cargando.'); return; }
   if (!body.classList.contains('desk') && mv.canActivateAR) mv.activateAR(); else startCam();
 });
